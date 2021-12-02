@@ -10,7 +10,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/joho/godotenv"
 )
 
 func setupRoutes(app *fiber.App) {
@@ -26,13 +25,13 @@ func setupRoutes(app *fiber.App) {
 }
 
 func main() {
-	if os.Getenv("APP_ENV") != "production" {
-		err := godotenv.Load()
-		if err != nil {
-			log.Fatal("Error loading .env file")
-		}
-	}
-
+	/*path, _ := os.Getwd()
+	fileName := filepath.Join(path, ".env")
+	fmt.Println(fileName)
+	err := godotenv.Load(filepath.Join(path, ".env"))
+	if err != nil {
+		log.Fatal(err)
+	}*/
 	app := fiber.New()
 
 	app.Use(cors.New())
@@ -43,10 +42,10 @@ func main() {
 	setupRoutes(app)
 
 	port := os.Getenv("PORT")
-	err := app.Listen(":" + port)
+	erro := app.Listen(":" + port)
 
-	if err != nil {
+	if erro != nil {
 		log.Fatal("Error app failed to start")
-		log.Fatal(err)
+		log.Fatal(erro)
 	}
 }
