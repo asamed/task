@@ -25,13 +25,13 @@ func setupRoutes(app *fiber.App) {
 }
 
 func main() {
-	/*path, _ := os.Getwd()
+	path, _ := os.Getwd()
 	fileName := filepath.Join(path, ".env")
 	fmt.Println(fileName)
 	err := godotenv.Load(filepath.Join(path, ".env"))
 	if err != nil {
 		log.Fatal(err)
-	}*/
+	}
 	app := fiber.New()
 
 	app.Use(cors.New())
