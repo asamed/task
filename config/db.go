@@ -20,13 +20,13 @@ type MongoInstance struct {
 var MI MongoInstance
 
 func ConnectDB() {
-	/*path, _ := os.Getwd()
+	path, _ := os.Getwd()
 	fileName := filepath.Join(path, ".env")
 	fmt.Println(fileName)
 	err := godotenv.Load(filepath.Join(path, ".env"))
 	if err != nil {
 		log.Fatal(err)
-	}*/
+	}
 	fmt.Println(os.Getenv("MONGO_URI"))
 	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("MONGO_URI")))
 	if err != nil {
