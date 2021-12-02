@@ -9,5 +9,6 @@ ENV MONGO_URI=mongodb://172.19.0.2 \
     PORT=8082
 WORKDIR /api
 COPY --from=GO_BUILD /go/bin/api/ ./
+COPY .env ./
 EXPOSE 8082
 CMD ./api
