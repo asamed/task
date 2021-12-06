@@ -81,7 +81,14 @@ func AddProduct(c *fiber.Ctx) error {
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	prod := new(model.Product)
-
+	if err := c.BodyParser(prod); err != nil {
+		log.Println(err)
+		return c.Status(400).JSON(fiber.Map{
+			"success": false,
+			"message": "Failed to parse",
+			"error":   err,
+		})
+	}
 	result, err := productCollection.InsertOne(ctx, prod)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
