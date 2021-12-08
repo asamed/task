@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"mongoapi/config"
@@ -50,9 +52,11 @@ func GetAllProducts(c *fiber.Ctx) error {
 func GetProduct(c *fiber.Ctx) error {
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-
 	var prod model.Product
 	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	findResult := productCollection.FindOne(ctx, bson.M{"_id": objId})
 	if err := findResult.Err(); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -78,17 +82,26 @@ func GetProduct(c *fiber.Ctx) error {
 }
 
 func AddProduct(c *fiber.Ctx) error {
+	fmt.Println(c)
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	prod := new(model.Product)
-	if err := c.BodyParser(prod); err != nil {
+	prod.ProductName = c.Query("prodName")
+	str := c.FormValue("prodPrice")
+	var err error
+	prod.ProductPrice, err = strconv.Atoi(str)
+	if err != nil {
+		log.Fatal(err)
+	}
+	/*if err := c.BodyParser(prod); err != nil {
 		log.Println(err)
 		return c.Status(400).JSON(fiber.Map{
 			"success": false,
-			"message": "Failed to parse",
+			"message": "Failed to parse body",
 			"error":   err,
 		})
-	}
+	}*/
+	fmt.Println(prod)
 	result, err := productCollection.InsertOne(ctx, prod)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -109,15 +122,21 @@ func UpdateProduct(c *fiber.Ctx) error {
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	prod := new(model.Product)
-
-	if err := c.BodyParser(prod); err != nil {
+	prod.ProductName = c.Query("prodName")
+	str := c.FormValue("prodPrice")
+	var err error
+	prod.ProductPrice, err = strconv.Atoi(str)
+	if err != nil {
+		log.Fatal(err)
+	}
+	/*if err := c.BodyParser(prod); err != nil {
 		log.Println(err)
 		return c.Status(400).JSON(fiber.Map{
 			"success": false,
 			"message": "Failed to parse body",
 			"error":   err,
 		})
-	}
+	}*/
 
 	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
