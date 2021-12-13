@@ -1,0 +1,8 @@
+1. Start the database with the command "docker run -p 27017:27017 --name mongodb -d mongo:latest
+2. Build the image with "docker build . -t <image name>"
+Note: The IP of the database might have to be changed in the .env file to match with how it's created on the system
+3. Run the built image with "docker run -it -p 8082:8082 <image name>"
+Note: The port of the API can be diffirent
+
+Test GET with curl GET localhost:8082/api/products
+Test POST with curl POST localhost:8082/api/products?prodName=<value>&prodPrice=<value>
