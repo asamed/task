@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	"mongoapi/config"
 	"mongoapi/routes"
@@ -10,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
 )
 
 func setupRoutes(app *fiber.App) {
@@ -26,8 +28,6 @@ func setupRoutes(app *fiber.App) {
 
 func main() {
 	path, _ := os.Getwd()
-	fileName := filepath.Join(path, ".env")
-	fmt.Println(fileName)
 	err := godotenv.Load(filepath.Join(path, ".env"))
 	if err != nil {
 		log.Fatal(err)
@@ -42,10 +42,10 @@ func main() {
 	setupRoutes(app)
 
 	port := os.Getenv("PORT")
-	erro := app.Listen(":" + port)
+	err = app.Listen(":" + port)
 
-	if erro != nil {
+	if err != nil {
 		log.Fatal("Error app failed to start")
-		log.Fatal(erro)
+		log.Fatal(err)
 	}
 }
