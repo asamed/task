@@ -147,3 +147,28 @@ func UpdateProduct(c *fiber.Ctx) error {
 		"message": "Product updated successfully",
 	})
 }
+func DeleteProduct(c *fiber.Ctx) error {
+	productCollection := config.MI.DB.Collection("products")
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+
+	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"success": false,
+			"message": "Product not found",
+			"error":   err,
+		})
+	}
+	_, err = productCollection.DeleteOne(ctx, bson.M{"_id": objId})
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"success": false,
+			"message": "Product failed to delete",
+			"error":   err,
+		})
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"success": true,
+		"message": "Product deleted successfully",
+	})
+}
