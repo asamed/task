@@ -86,13 +86,21 @@ func AddProduct(c *fiber.Ctx) error {
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	prod := new(model.Product)
-	prod.ProductName = c.Query("prodName")
+	/*prod.ProductName = c.Query("prodName")
 	str := c.FormValue("prodPrice")
 	var err error
 	prod.ProductPrice, err = strconv.Atoi(str)
 	if err != nil {
 		log.Fatal(err)
-	}
+	}*/
+	if err := c.BodyParser(prod); err != nil {
+        log.Println(err)
+        return c.Status(400).JSON(fiber.Map{
+            "success": false,
+            "message": "Failed to parse body",
+            "error":   err,
+        })
+    }
 	fmt.Println(prod)
 	result, err := productCollection.InsertOne(ctx, prod)
 	if err != nil {
@@ -115,13 +123,21 @@ func UpdateProduct(c *fiber.Ctx) error {
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	prod := new(model.Product)
-	prod.ProductName = c.Query("prodName")
+	/*prod.ProductName = c.Query("prodName")
 	str := c.FormValue("prodPrice")
 	var err error
 	prod.ProductPrice, err = strconv.Atoi(str)
 	if err != nil {
 		fmt.Println(err)
-	}
+	}*/
+	if err := c.BodyParser(prod); err != nil {
+        log.Println(err)
+        return c.Status(400).JSON(fiber.Map{
+            "success": false,
+            "message": "Failed to parse body",
+            "error":   err,
+        })
+    }
 	objId, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -147,6 +163,7 @@ func UpdateProduct(c *fiber.Ctx) error {
 		"message": "Product updated successfully",
 	})
 }
+
 func DeleteProduct(c *fiber.Ctx) error {
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
