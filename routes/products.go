@@ -11,4 +11,5 @@ func ProductsRoute(route fiber.Router) {
 	route.Get("/:id", controllers.GetProduct)
 	route.Post("/", controllers.AddProduct)
 	route.Put("/:id", controllers.UpdateProduct)
+	route.Delete("/:id", controllers.DeleteProduct)
 }
