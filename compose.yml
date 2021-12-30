@@ -10,7 +10,7 @@ services:
     volumes:
       - mongodb_data_container:/data/db
   api:
-    image: api2
+    image: asamed/api
     ports: 
       - 8082:8082
 volumes:
