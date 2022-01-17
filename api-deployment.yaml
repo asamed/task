@@ -24,7 +24,14 @@ spec:
         io.kompose.service: api
     spec:
       containers:
-        - image: asamed/api
+        - env:
+            - name: DB
+              value: TestDB
+            - name: MONGO_URI
+              value: mongodb://mongodb_container
+            - name: PORT
+              value: "8082"
+          image: asamed/api
           name: api
           ports:
             - containerPort: 8082
