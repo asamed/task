@@ -28,7 +28,7 @@ spec:
             - name: DB
               value: TestDB
             - name: MONGO_URI
-              value: mongodb://mongodb_container
+              value: mongodb://172.19.0.2
             - name: PORT
               value: "8082"
           image: asamed/api
