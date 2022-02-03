@@ -82,9 +82,8 @@ func GetProduct(c *fiber.Ctx) error {
 }
 
 func AddProduct(c *fiber.Ctx) error {
-	fmt.Println(c)
 	productCollection := config.MI.DB.Collection("products")
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute)
 	prod := new(model.Product)
 	if err := c.BodyParser(prod); err != nil {
         log.Println(err)
@@ -94,7 +93,7 @@ func AddProduct(c *fiber.Ctx) error {
             "error":   err,
         })
     }
-	fmt.Println(prod)
+	time.Sleep(2*time.Minute)
 	result, err := productCollection.InsertOne(ctx, prod)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
