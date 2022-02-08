@@ -25,7 +25,7 @@ func server(c net.Conn) {
 }
 
 func main() {
-	log.Println("Starting server")
+	log.Println("Starting...")
 	ln, err := net.Listen("unix", "./")
 	if err != nil {
 		log.Fatal("Listen error: ", err)
