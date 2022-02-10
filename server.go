@@ -1,48 +1,59 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net"
 	"os"
-	"os/signal"
-	"syscall"
 )
 
-func server(c net.Conn) {
+type Controler interface {
+	start() error
+	stop() error
+	status() (string, error)
+}
+
+func processClient(conn net.Conn) {
+	buf := make([]byte, 1024)
+	msLn, err := conn.Read(buf)
+	if err != nil {
+		fmt.Println("Error reading: ", err)
+	}
+	fmt.Println("Server received: ", string(buf[:msLn]))
+	_, err = conn.Write([]byte("Got the message: " + string(buf[:msLn])))
+	conn.Close()
+}
+
+func serverStart() {
+	fmt.Println("Starting server...")
+	server, err := net.Listen("tcp", "localhost:8081")
+	if err != nil {
+		fmt.Println("Error while listening: ", err)
+	}
+	defer server.Close()
+	fmt.Println("Listening on localhost:8081")
 	for {
-		buf := make([]byte, 512)
-		nr, err := c.Read(buf)
+		conn, err := server.Accept()
 		if err != nil {
-			return
+			fmt.Println("Error accepting: ", err)
+			os.Exit(1)
 		}
-		data := buf[0:nr]
-		println("Server got: ", string(data))
-		_, err = c.Write(data)
-		if err != nil {
-			log.Fatal("Writing client error: ", err)
-		}
+		fmt.Println("Client connected.")
+		go processClient(conn)
 	}
 }
 
 func main() {
-	log.Println("Starting...")
-	ln, err := net.Listen("unix", "./")
-	if err != nil {
-		log.Fatal("Listen error: ", err)
-	}
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, os.Interrupt, syscall.SIGTERM)
-	go func(ln net.Listener, c chan os.Signal) {
-		sig := <-c
-		log.Printf("Caught signal: %s, shutting down", sig)
-		ln.Close()
-		os.Exit(0)
-	}(ln, sigch)
-	for {
-		fd, err := ln.Accept()
-		if err != nil {
-			log.Fatal("Accept error: ", err)
-		}
-		go server(fd)
-	}
+	// go serverStart()
+	// conn, err := net.Dial("tcp", "localhost:8081")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// _, err = conn.Write([]byte("Hello server."))
+	// buf := make([]byte, 1024)
+	// mLen, err := conn.Read(buf)
+	// if err != nil {
+	// 	fmt.Println("Error reading: ", err)
+	// }
+	// fmt.Println("Client received: ", string(buf[:mLen]))
+	// defer conn.Close()
 }
