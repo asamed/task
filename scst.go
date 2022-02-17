@@ -74,6 +74,9 @@ func (c Client) Start() {
 		log.Fatal("Error connecting: ", err)
 	}
 	_, err = conn.Write([]byte("Client connected."))
+	if err != nil {
+		log.Println("Error writing: ", err)
+	}
 	fmt.Println("Waiting...")
 	fmt.Scanln()
 }
@@ -83,7 +86,14 @@ func (c Client) Stop() {
 }
 
 func (st Status) Start() {
-
+	isRun := false
+	_ = isRun
+	for _, c := range *components {
+		if c.Status() == "RUNNING" {
+			isRun = true
+		}
+		fmt.Println(isRun)
+	}
 }
 
 func (st Status) Stop() {
@@ -102,26 +112,23 @@ type Server struct{}
 type Client struct{}
 type Status struct{}
 
+var components *[]Component
+
 func main() {
 	s := NewServer()
 	c := NewClient()
 	st := NewStatusComp()
-	components := []Component{s, c, st}
+	coms := []Component{s, c, st}
+	*components = coms
 	var wg sync.WaitGroup
-	for i, c := range components {
+	for i, c := range *components {
 		wg.Add(1)
 		comp := c
 		go func() {
+			defer wg.Done()
 			comp.Start()
 		}()
 		fmt.Println(i + 1)
 	}
-	for i, c := range components {
-		comp := c
-		go func() {
-			defer wg.Done()
-			comp.Stop()
-		}()
-		fmt.Println(i + 1)
-	}
+	wg.Wait()
 }
