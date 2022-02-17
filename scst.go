@@ -119,7 +119,7 @@ func main() {
 	c := NewClient()
 	st := NewStatusComp()
 	coms := []Component{s, c, st}
-	*components = coms
+	components = &coms
 	var wg sync.WaitGroup
 	for i, c := range *components {
 		wg.Add(1)
