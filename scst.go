@@ -104,7 +104,11 @@ func (c Client) Start() {
 }
 
 func (c Client) Stop() {
-
+	con, err := net.Dial("tcp", "localhost:8081")
+	if err != nil {
+		log.Fatal(err)
+	}
+	con.Close()
 }
 
 func (st Status) Start() {
@@ -146,7 +150,8 @@ func main() {
 	st := NewStatusComp()
 	coms := []Component{s, c, st}
 	components = &coms
-	*cst = false
+	cf := false
+	cst = &cf
 	var wg sync.WaitGroup
 	for _, c := range *components {
 		wg.Add(1)
