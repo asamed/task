@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -32,16 +31,17 @@ func NewStatusComp() Status {
 }
 
 func (s Server) Start() {
-	syscall.Unlink("/tmp/go.sock")
+	// syscall.Unlink("/tmp/go.sock")
 	srv, err := net.Listen("tcp", "localhost:8081")
 	if err != nil {
 		fmt.Println("Error while listening: ", err)
 		return
 	}
-	defer srv.Close()
+	s.l = srv
+	defer s.l.Close()
 	fmt.Println("Listening on localhost:8081...")
 	for {
-		conn, err := srv.Accept()
+		conn, err := s.l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting: ", err)
 			os.Exit(1)
@@ -61,7 +61,7 @@ func (s Server) Start() {
 }
 
 func (s Server) Stop() {
-
+	s.l.Close()
 }
 
 func (s Server) Status() string {
@@ -73,10 +73,9 @@ func (s Server) Status() string {
 }
 
 func (c Client) Start() {
-	var conn net.Conn
 	var err error
 	for i := 0; i < 3; i++ {
-		conn, err = net.Dial("tcp", "localhost:8081")
+		c.con, err = net.Dial("tcp", "localhost:8081")
 		if err != nil {
 			fmt.Println("Error connecting: ", err)
 			fmt.Println("Trying again...")
@@ -90,13 +89,13 @@ func (c Client) Start() {
 	// if err != nil {
 	// 	log.Fatal("Error connecting: ", err)
 	// }
-	_, err = conn.Write([]byte("Client connected."))
+	_, err = c.con.Write([]byte("Client connected."))
 	*cst = true
 	if err != nil {
 		log.Println("Error writing: ", err)
 	}
 	buf := make([]byte, 1024)
-	msr, err := conn.Read(buf)
+	msr, err := c.con.Read(buf)
 	if err != nil {
 		fmt.Println("Error reading from server: ", err)
 	}
@@ -104,11 +103,13 @@ func (c Client) Start() {
 }
 
 func (c Client) Stop() {
-	con, err := net.Dial("tcp", "localhost:8081")
+	conn, err := net.Dial("tcp", "localhost:8081")
 	if err != nil {
 		log.Fatal(err)
 	}
-	con.Close()
+	c.con = conn
+	c.con.Close()
+
 }
 
 func (st Status) Start() {
@@ -137,8 +138,12 @@ func (c Client) Status() string {
 	return ""
 }
 
-type Server struct{}
-type Client struct{}
+type Server struct {
+	l net.Listener
+}
+type Client struct {
+	con net.Conn
+}
 type Status struct{}
 
 var components *[]Component
