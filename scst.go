@@ -31,7 +31,6 @@ func NewStatusComp() Status {
 }
 
 func (s Server) Start() {
-	// syscall.Unlink("/tmp/go.sock")
 	srv, err := net.Listen("tcp", "localhost:8081")
 	if err != nil {
 		fmt.Println("Error while listening: ", err)
@@ -85,12 +84,12 @@ func (c Client) Start() {
 			break
 		}
 	}
+	*cst = true
 	// conn, err := net.Dial("tcp", "localhost:8081")
 	// if err != nil {
 	// 	log.Fatal("Error connecting: ", err)
 	// }
 	_, err = c.con.Write([]byte("Client connected."))
-	*cst = true
 	if err != nil {
 		log.Println("Error writing: ", err)
 	}
