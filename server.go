@@ -4,56 +4,60 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 )
 
-type Controler interface {
-	start() error
-	stop() error
-	status() (string, error)
-}
-
-func processClient(conn net.Conn) {
-	buf := make([]byte, 1024)
-	msLn, err := conn.Read(buf)
+func listen(end chan<- bool) {
+	addr, err := net.ResolveUnixAddr("unix", "/tmp/lsock")
 	if err != nil {
-		fmt.Println("Error reading: ", err)
+		fmt.Printf("Failed to resolve: %v\n", err)
+		os.Exit(1)
 	}
-	fmt.Println("Server received: ", string(buf[:msLn]))
-	_, err = conn.Write([]byte("Got the message: " + string(buf[:msLn])))
+	list, err := net.ListenUnix("unix", addr)
+	if err != nil {
+		fmt.Printf("Failed to listen: %v\n", err)
+		os.Exit(1)
+	}
+	conn, _ := list.AcceptUnix()
+	buf := make([]byte, 2048)
+	n, uaddr, err := conn.ReadFromUnix(buf)
+	if err != nil {
+		fmt.Printf("LISTEN: Error %v\n", err)
+	} else {
+		fmt.Printf("LISTEN: received %v bytes from %+v\n", n, uaddr)
+		fmt.Printf("LISTEN: %v\n", string(buf))
+	}
 	conn.Close()
+	list.Close()
+	end <- true
 }
 
-func serverStart() {
-	fmt.Println("Starting server...")
-	server, err := net.Listen("tcp", "localhost:8081")
+func dial(end chan<- bool) {
+	addr, err := net.ResolveUnixAddr("unix", "tmp/lsock")
 	if err != nil {
-		fmt.Println("Error while listening: ", err)
+		fmt.Printf("Failed to resolve: %v\n", err)
+		os.Exit(1)
 	}
-	defer server.Close()
-	fmt.Println("Listening on localhost:8081")
-	for {
-		conn, err := server.Accept()
-		if err != nil {
-			fmt.Println("Error accepting: ", err)
-			os.Exit(1)
-		}
-		fmt.Println("Client connected.")
-		go processClient(conn)
+	conn, err := net.DialUnix("unix", nil, addr)
+	if err != nil {
+		fmt.Printf("Failed to dial: %v\n", err)
+		os.Exit(1)
 	}
+	if i, err := conn.Write([]byte("Test message")); err != nil {
+		fmt.Printf("DIAL: Error: %v\n", err)
+	} else {
+		fmt.Printf("DIAL: Success, sent %v bytes\n", i)
+	}
+	conn.Close()
+	end <- true
 }
 
 func main() {
-	// go serverStart()
-	// conn, err := net.Dial("tcp", "localhost:8081")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// _, err = conn.Write([]byte("Hello server."))
-	// buf := make([]byte, 1024)
-	// mLen, err := conn.Read(buf)
-	// if err != nil {
-	// 	fmt.Println("Error reading: ", err)
-	// }
-	// fmt.Println("Client received: ", string(buf[:mLen]))
-	// defer conn.Close()
+	os.RemoveAll("/tmp/lsock")
+	end := make(chan bool, 2)
+	go listen(end)
+	time.Sleep(time.Second)
+	go dial(end)
+	<-end
+	<-end
 }
