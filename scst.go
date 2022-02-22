@@ -31,14 +31,14 @@ func NewStatusComp() Status {
 }
 
 func (s Server) Start() {
-	srv, err := net.Listen("tcp", "localhost:8081")
+	srv, err := net.Listen("unix", "sock")
 	if err != nil {
 		fmt.Println("Error while listening: ", err)
 		return
 	}
 	s.l = srv
 	defer s.l.Close()
-	fmt.Println("Listening on localhost:8081...")
+	fmt.Println("Listening on sock...")
 	for {
 		conn, err := s.l.Accept()
 		if err != nil {
@@ -64,7 +64,7 @@ func (s Server) Stop() {
 }
 
 func (s Server) Status() string {
-	_, err := net.Dial("tcp", "localhost:8081")
+	_, err := net.Dial("unix", "sock")
 	if err != nil {
 		return "NOT RUNNING"
 	}
@@ -73,12 +73,12 @@ func (s Server) Status() string {
 
 func (c Client) Start() {
 	var err error
-	for i := 0; i < 3; i++ {
-		c.con, err = net.Dial("tcp", "localhost:8081")
+	for {
+		c.con, err = net.Dial("unix", "sock")
 		if err != nil {
 			fmt.Println("Error connecting: ", err)
 			fmt.Println("Trying again...")
-			time.Sleep(time.Millisecond * 1500)
+			time.Sleep(time.Second)
 		}
 		if err == nil {
 			break
@@ -149,6 +149,7 @@ var components *[]Component
 var cst *bool
 
 func main() {
+	os.Remove("sock")
 	s := NewServer()
 	c := NewClient()
 	st := NewStatusComp()
@@ -164,6 +165,7 @@ func main() {
 			defer wg.Done()
 			comp.Start()
 		}()
+		time.Sleep(time.Second)
 	}
 	wg.Wait()
 }
