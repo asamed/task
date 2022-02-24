@@ -45,7 +45,7 @@ func (s *Server) Start() {
 			fmt.Println("Error accepting: ", err)
 			os.Exit(1)
 		}
-		fmt.Println("Client connected.")
+		fmt.Println("Connected.")
 		go func(net.Conn) {
 			buf := make([]byte, 1024)
 			msL, err := conn.Read(buf)
@@ -107,14 +107,9 @@ func (c *Client) Stop() {
 }
 
 func (st Status) Start() {
-	isRun := false
-	_ = isRun
-	for i, c := range *components {
-		if c.Status() == "RUNNING" {
-			isRun = true
-		}
-		fmt.Println("Component", i+1, "running is", isRun)
-	}
+	fmt.Println("Server is ", s.Status())
+	fmt.Println("Client is ", c.Status())
+	fmt.Println("Status is ", st.Status())
 }
 
 func (st Status) Stop() {
@@ -140,14 +135,14 @@ type Client struct {
 }
 type Status struct{}
 
-var components *[]Component
+// var components *[]Component
 var cst *bool
+var s = NewServer()
+var c = NewClient()
+var st = NewStatusComp()
 
 func main() {
 	os.Remove("sock")
-	s := NewServer()
-	c := NewClient()
-	st := NewStatusComp()
 	// coms := []Component{s, c, st}
 	// components = &coms
 	cf := false
@@ -166,7 +161,7 @@ func main() {
 	for {
 		var chc string
 		for {
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Millisecond * 1500)
 			fmt.Println("Choose action: ")
 			fmt.Println("1. Start server")
 			fmt.Println("2. Start client")
