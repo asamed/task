@@ -30,12 +30,16 @@ func NewStatusComp() Status {
 }
 
 func (s *Server) Start() {
-	srv, err := net.Listen("unix", "sock")
+	if s.l != nil {
+		fmt.Println("Server already running.")
+		return
+	}
+	var err error
+	s.l, err = net.Listen("unix", "sock")
 	if err != nil {
 		fmt.Println("Error while listening: ", err)
 		return
 	}
-	s.l = srv
 	defer s.l.Close()
 	fmt.Println("Listening on sock...")
 	for {
