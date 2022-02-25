@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -60,6 +59,10 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
+	if s.l == nil {
+		fmt.Println("Server not running.")
+		return
+	}
 	s.l.Close()
 }
 
@@ -85,10 +88,6 @@ func (c *Client) Start() {
 		}
 	}
 	*cst = true
-	// conn, err := net.Dial("tcp", "localhost:8081")
-	// if err != nil {
-	// 	log.Fatal("Error connecting: ", err)
-	// }
 	_, err = c.con.Write([]byte("Client connected."))
 	if err != nil {
 		log.Println("Error writing: ", err)
@@ -102,6 +101,10 @@ func (c *Client) Start() {
 }
 
 func (c *Client) Stop() {
+	if c.con == nil {
+		fmt.Println("Client not running.")
+		return
+	}
 	c.con.Close()
 	*cst = false
 }
@@ -143,11 +146,13 @@ var st = NewStatusComp()
 
 func main() {
 	os.Remove("sock")
+	c.con = nil
+	s.l = nil
 	// coms := []Component{s, c, st}
 	// components = &coms
 	cf := false
 	cst = &cf
-	var wg sync.WaitGroup
+	// var wg sync.WaitGroup
 	// for _, c := range *components {
 	// 	wg.Add(1)
 	// 	comp := c
@@ -157,45 +162,45 @@ func main() {
 	// 	}()
 	// 	time.Sleep(time.Second)
 	// }
-	wg.Wait()
+	// wg.Wait()
+	// wg.Add(2)
+	var chc string
 	for {
-		var chc string
-		for {
-			time.Sleep(time.Millisecond * 1500)
-			fmt.Println("Choose action: ")
-			fmt.Println("1. Start server")
-			fmt.Println("2. Start client")
-			fmt.Println("3. Stop server")
-			fmt.Println("4. Stop client")
-			fmt.Println("5. Server status")
-			fmt.Println("6. Client status")
-			fmt.Println("7. All status check")
-			fmt.Scanln(&chc)
-			if chc == "1" {
-				wg.Add(1)
-				go s.Start()
-			}
-			if chc == "2" {
-				wg.Add(1)
-				go c.Start()
-			}
-			if chc == "3" {
-				s.Stop()
-				wg.Done()
-			}
-			if chc == "4" {
-				c.Stop()
-				wg.Done()
-			}
-			if chc == "5" {
-				fmt.Println(s.Status())
-			}
-			if chc == "6" {
-				fmt.Println(c.Status())
-			}
-			if chc == "7" {
-				st.Start()
-			}
+		time.Sleep(time.Millisecond * 1500)
+		fmt.Println("Choose action: ")
+		fmt.Println("1. Start server")
+		fmt.Println("2. Start client")
+		fmt.Println("3. Stop server")
+		fmt.Println("4. Stop client")
+		fmt.Println("5. Server status")
+		fmt.Println("6. Client status")
+		fmt.Println("7. All status check")
+		fmt.Scanln(&chc)
+		if chc == "1" {
+			go s.Start()
+		}
+		if chc == "2" {
+			go c.Start()
+		}
+		if chc == "3" {
+			s.Stop()
+			// wg.Done()
+		}
+		if chc == "4" {
+			c.Stop()
+			// wg.Done()
+		}
+		if chc == "5" {
+			fmt.Println(s.Status())
+		}
+		if chc == "6" {
+			fmt.Println(c.Status())
+		}
+		if chc == "7" {
+			st.Start()
+		}
+		if chc == "exit" || chc == "Exit" {
+			break
 		}
 	}
 }
