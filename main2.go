@@ -5,8 +5,12 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
+
+const socket = "sock"
 
 type Component interface {
 	Start()
@@ -35,7 +39,7 @@ func (s *Server) Start() {
 		return
 	}
 	var err error
-	s.l, err = net.Listen("unix", "sock")
+	s.l, err = net.Listen("unix", socket)
 	if err != nil {
 		fmt.Println("Error while listening: ", err)
 		return
@@ -57,6 +61,9 @@ func (s *Server) Start() {
 			}
 			fmt.Println("Server received: ", string(buf[:msL]))
 			_, err = conn.Write([]byte("Server got: " + string(buf[:msL])))
+			if err != nil {
+				fmt.Println("Error writing: ", err)
+			}
 			conn.Close()
 		}(conn)
 	}
@@ -68,10 +75,11 @@ func (s *Server) Stop() {
 		return
 	}
 	s.l.Close()
+	os.Remove(socket)
 }
 
 func (s Server) Status() string {
-	_, err := net.Dial("unix", "sock")
+	_, err := net.Dial("unix", socket)
 	if err != nil {
 		return "NOT RUNNING"
 	}
@@ -81,7 +89,7 @@ func (s Server) Status() string {
 func (c *Client) Start() {
 	var err error
 	for {
-		c.con, err = net.Dial("unix", "sock")
+		c.con, err = net.Dial("unix", socket)
 		if err != nil {
 			fmt.Println("Error connecting: ", err)
 			fmt.Println("Trying again...")
@@ -91,7 +99,6 @@ func (c *Client) Start() {
 			break
 		}
 	}
-	*cst = true
 	_, err = c.con.Write([]byte("Client connected."))
 	if err != nil {
 		log.Println("Error writing: ", err)
@@ -106,11 +113,11 @@ func (c *Client) Start() {
 
 func (c *Client) Stop() {
 	if c.con == nil {
-		fmt.Println("Client not running.")
+		fmt.Println("Client is not running.")
 		return
 	}
 	c.con.Close()
-	*cst = false
+	c.con = nil
 }
 
 func (st Status) Start() {
@@ -127,8 +134,8 @@ func (st Status) Status() string {
 	return "RUNNING"
 }
 
-func (c Client) Status() string {
-	if *cst == true {
+func (c *Client) Status() string {
+	if c.con != nil {
 		return "RUNNING"
 	}
 	return "NOT RUNNING"
@@ -142,32 +149,27 @@ type Client struct {
 }
 type Status struct{}
 
-// var components *[]Component
-var cst *bool
 var s = NewServer()
 var c = NewClient()
 var st = NewStatusComp()
 
+func cleanup() {
+	s.l.Close()
+	c.con.Close()
+}
+
 func main() {
-	os.Remove("sock")
+	os.Remove(socket)
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ch
+		fmt.Printf("\nCleaning up...")
+		cleanup()
+		os.Exit(1)
+	}()
 	c.con = nil
 	s.l = nil
-	// coms := []Component{s, c, st}
-	// components = &coms
-	cf := false
-	cst = &cf
-	// var wg sync.WaitGroup
-	// for _, c := range *components {
-	// 	wg.Add(1)
-	// 	comp := c
-	// 	go func() {
-	// 		defer wg.Done()
-	// 		comp.Start()
-	// 	}()
-	// 	time.Sleep(time.Second)
-	// }
-	// wg.Wait()
-	// wg.Add(2)
 	var chc string
 	for {
 		time.Sleep(time.Millisecond * 1500)
@@ -179,6 +181,7 @@ func main() {
 		fmt.Println("5. Server status")
 		fmt.Println("6. Client status")
 		fmt.Println("7. All status check")
+		fmt.Printf("Enter your choice: ")
 		fmt.Scanln(&chc)
 		if chc == "1" {
 			go s.Start()
@@ -188,11 +191,9 @@ func main() {
 		}
 		if chc == "3" {
 			s.Stop()
-			// wg.Done()
 		}
 		if chc == "4" {
 			c.Stop()
-			// wg.Done()
 		}
 		if chc == "5" {
 			fmt.Println(s.Status())
@@ -203,7 +204,8 @@ func main() {
 		if chc == "7" {
 			st.Start()
 		}
-		if chc == "exit" || chc == "Exit" {
+		if chc == "exit" {
+			cleanup()
 			break
 		}
 	}
