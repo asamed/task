@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -17,6 +18,18 @@ type Component interface {
 	Stop()
 	Status() string
 }
+
+type Server struct {
+	l   net.Listener
+	run bool
+}
+
+type Client struct {
+	con net.Conn
+	run bool
+}
+
+type Status struct{}
 
 func NewServer() Server {
 	s := new(Server)
@@ -44,13 +57,14 @@ func (s *Server) Start() {
 		fmt.Println("Error while listening: ", err)
 		return
 	}
+	s.run = true
 	defer s.l.Close()
 	fmt.Println("Listening on sock...")
 	for {
 		conn, err := s.l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting: ", err)
-			os.Exit(1)
+			return
 		}
 		fmt.Println("Connected.")
 		go func(net.Conn) {
@@ -70,10 +84,7 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
-	if s.l == nil {
-		fmt.Println("Server not running.")
-		return
-	}
+	s.run = false
 	s.l.Close()
 	os.Remove(socket)
 }
@@ -99,6 +110,7 @@ func (c *Client) Start() {
 			break
 		}
 	}
+	c.run = true
 	_, err = c.con.Write([]byte("Client connected."))
 	if err != nil {
 		log.Println("Error writing: ", err)
@@ -112,12 +124,8 @@ func (c *Client) Start() {
 }
 
 func (c *Client) Stop() {
-	if c.con == nil {
-		fmt.Println("Client is not running.")
-		return
-	}
+	c.run = false
 	c.con.Close()
-	c.con = nil
 }
 
 func (st Status) Start() {
@@ -141,22 +149,12 @@ func (c *Client) Status() string {
 	return "NOT RUNNING"
 }
 
-type Server struct {
-	l net.Listener
-}
-type Client struct {
-	con net.Conn
-}
-type Status struct{}
-
-var s = NewServer()
-var c = NewClient()
-var st = NewStatusComp()
-
 func cleanup() {
 	s.l.Close()
 	c.con.Close()
 }
+
+var s, c, st = NewServer(), NewClient(), NewStatusComp()
 
 func main() {
 	os.Remove(socket)
@@ -164,15 +162,14 @@ func main() {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-ch
-		fmt.Printf("\nCleaning up...")
+		fmt.Printf("\nCleaning...")
 		cleanup()
 		os.Exit(1)
 	}()
-	c.con = nil
-	s.l = nil
-	var chc string
+	var chc int
+	var wg sync.WaitGroup
 	for {
-		time.Sleep(time.Millisecond * 1500)
+		time.Sleep(time.Second)
 		fmt.Println("Choose action: ")
 		fmt.Println("1. Start server")
 		fmt.Println("2. Start client")
@@ -181,32 +178,40 @@ func main() {
 		fmt.Println("5. Server status")
 		fmt.Println("6. Client status")
 		fmt.Println("7. All status check")
+		fmt.Println("8. Exit")
 		fmt.Printf("Enter your choice: ")
 		fmt.Scanln(&chc)
-		if chc == "1" {
+		switch chc {
+		case 1:
+			wg.Add(1)
 			go s.Start()
-		}
-		if chc == "2" {
+		case 2:
+			wg.Add(1)
 			go c.Start()
-		}
-		if chc == "3" {
+		case 3:
+			if !s.run {
+				fmt.Println("Server is not running, nothing to stop.")
+				continue
+			}
+			wg.Done()
 			s.Stop()
-		}
-		if chc == "4" {
+		case 4:
+			if !c.run {
+				fmt.Println("Client is not running, nothing to stop.")
+				continue
+			}
+			wg.Done()
 			c.Stop()
-		}
-		if chc == "5" {
+		case 5:
 			fmt.Println(s.Status())
-		}
-		if chc == "6" {
+		case 6:
 			fmt.Println(c.Status())
-		}
-		if chc == "7" {
+		case 7:
 			st.Start()
-		}
-		if chc == "exit" {
+		case 8:
 			cleanup()
-			break
+			os.Exit(1)
 		}
 	}
+	wg.Wait()
 }
