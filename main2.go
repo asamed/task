@@ -20,13 +20,11 @@ type Component interface {
 }
 
 type Server struct {
-	l   net.Listener
-	run bool
+	l net.Listener
 }
 
 type Client struct {
 	con net.Conn
-	run bool
 }
 
 type Status struct{}
@@ -57,7 +55,6 @@ func (s *Server) Start() {
 		fmt.Println("Error while listening: ", err)
 		return
 	}
-	s.run = true
 	defer s.l.Close()
 	fmt.Println("Listening on sock...")
 	for {
@@ -84,7 +81,6 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
-	s.run = false
 	s.l.Close()
 	os.Remove(socket)
 }
@@ -110,7 +106,6 @@ func (c *Client) Start() {
 			break
 		}
 	}
-	c.run = true
 	_, err = c.con.Write([]byte("Client connected."))
 	if err != nil {
 		log.Println("Error writing: ", err)
@@ -124,7 +119,6 @@ func (c *Client) Start() {
 }
 
 func (c *Client) Stop() {
-	c.run = false
 	c.con.Close()
 }
 
@@ -149,12 +143,13 @@ func (c *Client) Status() string {
 	return "NOT RUNNING"
 }
 
-func cleanup() {
-	s.l.Close()
-	c.con.Close()
-}
+// func cleanup() {
+// 	s.l.Close()
+// 	c.con.Close()
+// }
 
 var s, c, st = NewServer(), NewClient(), NewStatusComp()
+var wg sync.WaitGroup
 
 func main() {
 	os.Remove(socket)
@@ -162,56 +157,20 @@ func main() {
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-ch
-		fmt.Printf("\nCleaning...")
-		cleanup()
+		fmt.Printf("\nCleaning up...\n")
+		s.Stop()
+		c.Stop()
 		os.Exit(1)
 	}()
-	var chc int
-	var wg sync.WaitGroup
-	for {
+	components := []Component{&s, &c, &st}
+	for _, comp := range components {
+		wg.Add(1)
+		c := comp
+		go func() {
+			defer wg.Done()
+			c.Start()
+		}()
 		time.Sleep(time.Second)
-		fmt.Println("Choose action: ")
-		fmt.Println("1. Start server")
-		fmt.Println("2. Start client")
-		fmt.Println("3. Stop server")
-		fmt.Println("4. Stop client")
-		fmt.Println("5. Server status")
-		fmt.Println("6. Client status")
-		fmt.Println("7. All status check")
-		fmt.Println("8. Exit")
-		fmt.Printf("Enter your choice: ")
-		fmt.Scanln(&chc)
-		switch chc {
-		case 1:
-			wg.Add(1)
-			go s.Start()
-		case 2:
-			wg.Add(1)
-			go c.Start()
-		case 3:
-			if !s.run {
-				fmt.Println("Server is not running, nothing to stop.")
-				continue
-			}
-			wg.Done()
-			s.Stop()
-		case 4:
-			if !c.run {
-				fmt.Println("Client is not running, nothing to stop.")
-				continue
-			}
-			wg.Done()
-			c.Stop()
-		case 5:
-			fmt.Println(s.Status())
-		case 6:
-			fmt.Println(c.Status())
-		case 7:
-			st.Start()
-		case 8:
-			cleanup()
-			os.Exit(1)
-		}
 	}
 	wg.Wait()
 }
