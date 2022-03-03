@@ -82,7 +82,6 @@ func GetProduct(c *fiber.Ctx) error {
 }
 
 func AddProduct(c *fiber.Ctx) error {
-	fmt.Println(c)
 	productCollection := config.MI.DB.Collection("products")
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute)
 	prod := new(model.Product)
