@@ -170,7 +170,6 @@ func main() {
 			defer wg.Done()
 			c.Start()
 		}()
-		time.Sleep(time.Second)
 	}
 	wg.Wait()
 }
